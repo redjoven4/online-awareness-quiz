@@ -2113,6 +2113,8 @@ let myEntryId = null;        // id of this player's saved result on the shared b
 
 let lastLocalEntry = null;   // this player's result in the local list
 
+let liveRefreshTimer = null; // refreshes the shared board while results are showing
+
 // Shuffled answer order for the current question.
 // answerOrder[buttonIndex] = index in q.answers
 let answerOrder = [0, 1, 2, 3];
@@ -2591,6 +2593,54 @@ function showLocalBoard(reason) {
     );
 }
 
+function boardKey(list) {
+    return list.map(function(p) { return p.id + ":" + p.points; }).join("|");
+}
+
+function mapBoard(top) {
+    return (top || []).map(function(e) {
+        return {
+            id: e.id,
+            name: String(e.name || "Player"),
+            points: Number(e.points) || 0,
+            score: Number(e.score) || 0,
+            avatar: safeAvatar(e.avatar)
+        };
+    });
+}
+
+// Every 5 seconds, fetch the shared board so new players' scores appear live
+function startLiveRefresh() {
+
+    stopLiveRefresh();
+
+    liveRefreshTimer = setInterval(function() {
+
+        fetch("/api/leaderboard", { cache: "no-store" })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(data) {
+                if (!data || !liveRefreshTimer) return;
+
+                const list = mapBoard(data.top);
+                if (boardKey(list) === boardKey(shownBoard)) return;
+
+                const podiumChanged =
+                    boardKey(list.slice(0, 3)) !== boardKey(shownBoard.slice(0, 3));
+
+                shownBoard = list;
+                displayLeaderboard();
+                if (podiumChanged) renderPodium(true);
+            })
+            .catch(function() {});
+
+    }, 5000);
+}
+
+function stopLiveRefresh() {
+    if (liveRefreshTimer) clearInterval(liveRefreshTimer);
+    liveRefreshTimer = null;
+}
+
 function submitGlobalScore() {
 
     myEntryId = null;
@@ -2617,7 +2667,7 @@ function submitGlobalScore() {
     })
     .then(function(response) {
         return response.json().then(function(data) {
-            if (!response.ok) throw new Error(data.error || "Could not save score.");
+            if (!response.ok) throw new Error((data.error || "Could not save score.") + (data.detail ? " (" + data.detail + ")" : ""));
             return data;
         });
     })
@@ -2625,21 +2675,15 @@ function submitGlobalScore() {
         clearTimeout(timeout);
         myEntryId = data.id;
 
-        const list = (data.top || []).map(function(e) {
-            return {
-                id: e.id,
-                name: String(e.name || "Player"),
-                points: Number(e.points) || 0,
-                score: Number(e.score) || 0,
-                avatar: safeAvatar(e.avatar)
-            };
-        });
+        const list = mapBoard(data.top);
 
         let status = "";
         if (data.rank && data.rank <= 10) status = "🎉 You placed #" + data.rank + " on the leaderboard!";
         else if (data.rank) status = "You're #" + data.rank + " overall. Keep playing to reach the top 10!";
 
         showResultsBoard(list, status);
+
+        startLiveRefresh();
     })
     .catch(function(err) {
         clearTimeout(timeout);
@@ -2655,7 +2699,7 @@ function submitGlobalScore() {
    PODIUM + CONFETTI
 =================================== */
 
-function renderPodium() {
+function renderPodium(noConfetti) {
 
     // Top 3, shown in podium order: 2nd, 1st, 3rd
     const top = shownBoard.slice(0, 3);
@@ -2687,7 +2731,7 @@ function renderPodium() {
 
     document.getElementById("podium").innerHTML = html;
 
-    launchConfetti();
+    if (!noConfetti) launchConfetti();
 }
 
 function launchConfetti() {
@@ -2781,6 +2825,8 @@ function resetQuiz() {
     SoundFX.stopAll();
 
     SoundFX.musicStop();
+
+    stopLiveRefresh();
 
     const confetti = document.querySelector(".confetti-layer");
     if (confetti) confetti.remove();

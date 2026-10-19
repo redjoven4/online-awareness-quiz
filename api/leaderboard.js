@@ -28,10 +28,14 @@ const AVATAR_STYLES = {
 const AVATAR_COLOURS = ["skin", "hairColor", "shirtColor", "legColor", "shoeColor"];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
-// Basic word filter for display names
-const BLOCKED = [
-  "fuck", "shit", "bitch", "cunt", "dick", "pussy", "nigg", "fag", "slut", "whore",
-  "bastard", "asshole", "porn", "sex", "rape", "nazi", "kill", "pukimak", "babi", "bodoh", "sial", "lancau"
+// Basic word filter for display names.
+// BLOCKED_ANYWHERE: blocked even inside other words / with spaces removed.
+// BLOCKED_WORDS: blocked only as whole words, so normal names like "Dicky" or "Skilla" are allowed.
+const BLOCKED_ANYWHERE = [
+  "fuck", "shit", "bitch", "cunt", "nigg", "pussy", "whore", "slut", "asshole", "porn", "pukimak", "lancau"
+];
+const BLOCKED_WORDS = [
+  "sex", "kill", "rape", "nazi", "babi", "bodoh", "sial", "dick", "fag", "bastard"
 ];
 
 let clientPromise = null;
@@ -51,7 +55,9 @@ function cleanName(raw) {
   const name = raw.replace(/[\u0000-\u001F\u007F<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 20);
   if (!name) return null;
   const squashed = name.toLowerCase().replace(/[^a-z]/g, "");
-  if (BLOCKED.some(function (w) { return squashed.includes(w); })) return null;
+  if (BLOCKED_ANYWHERE.some(function (w) { return squashed.includes(w); })) return null;
+  const words = name.toLowerCase().split(/[^a-z]+/);
+  if (words.some(function (w) { return BLOCKED_WORDS.includes(w); })) return null;
   return name;
 }
 
@@ -118,6 +124,17 @@ module.exports = async function handler(req, res) {
   try {
 
     if (req.method === "GET") {
+
+      // Health check: /api/leaderboard?selftest=1 writes, reads and deletes a test value
+      if (String(req.query && req.query.selftest) === "1") {
+        const key = "quiz:selftest";
+        await redis.set(key, "ok", { EX: 30 });
+        const back = await redis.get(key);
+        await redis.del(key);
+        const size = await redis.zCard(BOARD_KEY);
+        return res.status(200).json({ write: back === "ok", savedResults: size });
+      }
+
       return res.status(200).json({ top: await readTop(redis) });
     }
 
@@ -179,6 +196,10 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed." });
 
   } catch (e) {
-    return res.status(500).json({ error: "Something went wrong saving the score." });
+    console.error("leaderboard error:", e);
+    return res.status(500).json({
+      error: "Something went wrong saving the score.",
+      detail: String((e && e.message) || e).slice(0, 200)
+    });
   }
 };
