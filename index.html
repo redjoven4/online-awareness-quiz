@@ -944,6 +944,332 @@ body.learning-mode .points-live {
     }
 }
 
+/* ---------- ROLE PICKER ---------- */
+
+.role-card {
+    max-width: 640px;
+    margin-top: 60px;
+}
+
+.role-picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.role-option {
+    border: 3px solid #e4e4e7;
+    background: #faf8ff;
+    border-radius: 16px;
+    padding: 22px 16px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font: inherit;
+    color: #333;
+    transition: transform 0.15s, border-color 0.15s;
+}
+
+.role-option:hover {
+    border-color: #46178f;
+    transform: translateY(-2px);
+}
+
+.role-emoji {
+    font-size: 44px;
+}
+
+.role-title {
+    font-size: 19px;
+    font-weight: bold;
+    color: #46178f;
+}
+
+.role-desc {
+    font-size: 14px;
+    color: #555;
+}
+
+.back-link {
+    display: block;
+    background: none;
+    border: none;
+    color: #46178f;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 0;
+    margin: -10px 0 8px;
+}
+
+/* ---------- TEACHER DASHBOARD ---------- */
+
+.teacher-card {
+    background: white;
+    color: #222;
+    max-width: 1000px;
+    margin: 10px auto;
+    padding: 26px;
+    border-radius: 16px;
+}
+
+.t-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.t-header h1 {
+    margin: 0;
+    color: #46178f;
+    font-size: 26px;
+}
+
+.t-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.t-controls select,
+.t-btn {
+    font: inherit;
+    font-size: 14px;
+    font-weight: bold;
+    border: 2px solid #46178f;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: white;
+    color: #46178f;
+    cursor: pointer;
+}
+
+.t-btn {
+    background: #46178f;
+    color: white;
+}
+
+.t-btn.ghost {
+    background: white;
+    color: #46178f;
+}
+
+.t-updated {
+    color: #666;
+    font-size: 13px;
+    margin: 8px 0 16px;
+}
+
+.t-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.t-tile {
+    background: #f4f0fb;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.t-tile b {
+    display: block;
+    font-size: 28px;
+    color: #46178f;
+}
+
+.t-tile span {
+    font-size: 13px;
+    color: #555;
+}
+
+.t-section {
+    margin-top: 26px;
+}
+
+.t-section h2 {
+    font-size: 20px;
+    color: #46178f;
+    margin-bottom: 4px;
+}
+
+.t-hint {
+    color: #666;
+    font-size: 14px;
+    margin: 0 0 12px;
+}
+
+.t-bar-row {
+    display: grid;
+    grid-template-columns: 220px 1fr 60px;
+    gap: 12px;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.t-bar {
+    height: 14px;
+    background: #ececf1;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.t-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 10px;
+}
+
+.t-low { background: #dc2626; }
+.t-mid { background: #d89e00; }
+.t-high { background: #16a34a; }
+
+.t-pct {
+    font-weight: bold;
+    text-align: right;
+}
+
+.t-q {
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 10px 0;
+}
+
+.t-q-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    color: #6b21a8;
+    font-weight: bold;
+}
+
+.t-q-text {
+    font-weight: bold;
+    margin: 6px 0 8px;
+    line-height: 1.4;
+}
+
+.t-q-wrong {
+    font-size: 14px;
+    color: #b91c1c;
+    margin-top: 6px;
+}
+
+.t-student {
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    margin: 8px 0;
+    overflow: hidden;
+}
+
+.t-student summary {
+    display: grid;
+    grid-template-columns: 40px 1fr auto auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.t-student summary::-webkit-details-marker {
+    display: none;
+}
+
+.t-student summary .lb-avatar svg {
+    width: 36px;
+    height: 36px;
+}
+
+.t-name b {
+    display: block;
+}
+
+.t-name span,
+.t-meta {
+    font-size: 13px;
+    color: #666;
+}
+
+.t-score {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.t-weak {
+    font-size: 12px;
+    font-weight: bold;
+    color: #92400e;
+    background: #fef3c7;
+    border-radius: 20px;
+    padding: 3px 8px;
+    white-space: nowrap;
+}
+
+.t-answers {
+    border-top: 1px solid #e4e4e7;
+    padding: 8px 14px 12px;
+    background: #fafafa;
+}
+
+.t-ans {
+    display: grid;
+    grid-template-columns: 26px 40px 1fr;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 14px;
+    border-bottom: 1px dashed #e4e4e7;
+}
+
+.t-ans:last-child {
+    border-bottom: none;
+}
+
+.t-ans small {
+    display: block;
+    color: #b91c1c;
+}
+
+.t-empty {
+    text-align: center;
+    color: #555;
+    padding: 30px 10px;
+}
+
+@media (max-width: 700px) {
+    .role-picker,
+    .t-tiles {
+        grid-template-columns: 1fr 1fr;
+    }
+    .role-picker {
+        grid-template-columns: 1fr;
+    }
+    .t-bar-row {
+        grid-template-columns: 1fr 70px;
+    }
+    .t-bar-row .t-bar {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+    .t-student summary {
+        grid-template-columns: 40px 1fr auto;
+    }
+    .t-student summary .t-weak,
+    .t-student summary .t-meta {
+        display: none;
+    }
+    .teacher-card {
+        padding: 18px 14px;
+    }
+}
+
 /* ---------- SOUND TOGGLE ---------- */
 
 .audio-controls {
@@ -1060,9 +1386,112 @@ body.learning-mode .points-live {
 <!-- NAME SCREEN -->
 <!-- ================================= -->
 
-<div id="nameScreen" class="screen active">
+<!-- ROLE: STUDENT OR TEACHER -->
+<div id="roleScreen" class="screen active">
+
+    <div class="join-card role-card">
+
+        <h1>🛡️ Online Awareness Quiz</h1>
+
+        <p>Who's here today?</p>
+
+        <div class="role-picker">
+
+            <button type="button" class="role-option" onclick="chooseRole('student')">
+                <span class="role-emoji">🎒</span>
+                <span class="role-title">I'm a Student</span>
+                <span class="role-desc">Create your avatar and play the quiz</span>
+            </button>
+
+            <button type="button" class="role-option" onclick="chooseRole('teacher')">
+                <span class="role-emoji">🍎</span>
+                <span class="role-title">I'm a Teacher</span>
+                <span class="role-desc">See students' answers and where they need help</span>
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- TEACHER LOGIN -->
+<div id="teacherLoginScreen" class="screen">
 
     <div class="join-card">
+
+        <button type="button" class="back-link" onclick="showScreen('roleScreen')">← Back</button>
+
+        <h1>🍎 Teacher access</h1>
+
+        <p>Enter the teacher code to view your students' results.</p>
+
+        <input
+            id="teacherCodeInput"
+            class="name-input"
+            type="password"
+            autocomplete="off"
+            placeholder="Teacher code"
+        >
+
+        <button class="start-button" onclick="teacherLogin()">
+            View Dashboard
+        </button>
+
+        <p id="teacherError" style="color:red;"></p>
+
+    </div>
+
+</div>
+
+
+<!-- TEACHER DASHBOARD -->
+<div id="teacherScreen" class="screen">
+
+    <div class="teacher-card">
+
+        <div class="t-header">
+
+            <h1>🍎 Teacher Dashboard</h1>
+
+            <div class="t-controls">
+
+                <select id="tRange" aria-label="Time period">
+                    <option value="today">Today</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                    <option value="all">All time</option>
+                </select>
+
+                <select id="tMode" aria-label="Game mode">
+                    <option value="all">Both modes</option>
+                    <option value="challenge">⚡ Challenge</option>
+                    <option value="learning">📚 Learning</option>
+                </select>
+
+                <button type="button" class="t-btn" onclick="loadTeacherData()">🔄 Refresh</button>
+                <button type="button" class="t-btn" onclick="downloadTeacherCsv()">⬇️ CSV</button>
+                <button type="button" class="t-btn ghost" onclick="teacherLogout()">Log out</button>
+
+            </div>
+
+        </div>
+
+        <p id="tUpdated" class="t-updated"></p>
+
+        <div id="teacherContent"></div>
+
+    </div>
+
+</div>
+
+
+<div id="nameScreen" class="screen">
+
+    <div class="join-card">
+
+        <button type="button" class="back-link" onclick="showScreen('roleScreen')">← Back</button>
 
         <h1>🛡️ Online Awareness Quiz</h1>
 
@@ -2823,6 +3252,7 @@ function answerQuestion(selected) {
     }
     else {
         document.getElementById("liveStandings").innerHTML = "";
+        postProgress(false).catch(function() {});   // saved for the teacher dashboard only
     }
 
 }
@@ -2932,6 +3362,7 @@ function finishQuiz() {
         shownBoard = [];
         document.getElementById("podium").innerHTML = "";
         launchConfetti();
+        postProgress(true).catch(function() {});    // saved for the teacher dashboard only
     }
     else {
         submitGlobalScore();   // save to the shared leaderboard, then show it
@@ -3061,7 +3492,11 @@ function postProgress(finished) {
         answered: finished ? questions.length : Math.min(currentQuestion + 1, questions.length),
         score: score,
         points: points,
-        finished: finished
+        finished: finished,
+        mode: quizMode,
+        answers: history.map(function(h) {
+            return { q: h.index, s: h.selected, c: h.correct };
+        })
     };
 
     // Requests are sent one after another so they always arrive in order
@@ -3283,6 +3718,371 @@ function renderPointsBreakdown() {
     html += '<div class="pb-total">Total: ' + points + ' points</div>';
 
     box.innerHTML = html;
+}
+
+
+/* ===================================
+   STUDENT / TEACHER
+=================================== */
+
+let teacherCode = "";
+try { teacherCode = sessionStorage.getItem("teacherCode") || ""; } catch (e) {}
+
+let teacherGames = [];
+let teacherTimer = null;
+
+function chooseRole(role) {
+    SoundFX.click();
+    if (role === "student") {
+        showScreen("nameScreen");
+        return;
+    }
+    if (teacherCode) {
+        openTeacherDashboard();
+    } else {
+        document.getElementById("teacherError").innerText = "";
+        showScreen("teacherLoginScreen");
+        document.getElementById("teacherCodeInput").focus();
+    }
+}
+
+function teacherLogin() {
+    const code = document.getElementById("teacherCodeInput").value.trim();
+    if (!code) {
+        document.getElementById("teacherError").innerText = "Please enter the teacher code.";
+        return;
+    }
+    teacherCode = code;
+    openTeacherDashboard();
+}
+
+document.getElementById("teacherCodeInput").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") teacherLogin();
+});
+
+function teacherLogout() {
+    teacherCode = "";
+    try { sessionStorage.removeItem("teacherCode"); } catch (e) {}
+    clearInterval(teacherTimer);
+    teacherTimer = null;
+    document.getElementById("teacherCodeInput").value = "";
+    showScreen("roleScreen");
+}
+
+function openTeacherDashboard() {
+    document.getElementById("teacherContent").innerHTML = '<p class="t-empty">Loading results…</p>';
+    showScreen("teacherScreen");
+    loadTeacherData(true);
+    clearInterval(teacherTimer);
+    teacherTimer = setInterval(function() { loadTeacherData(); }, 15000);   // live updates
+}
+
+function teacherSince() {
+    const range = document.getElementById("tRange").value;
+    const now = new Date();
+    if (range === "today") return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    if (range === "7d") return now.getTime() - 7 * 86400000;
+    if (range === "30d") return now.getTime() - 30 * 86400000;
+    return 0;
+}
+
+function loadTeacherData(firstLoad) {
+
+    fetch("/api/teacher?since=" + teacherSince(), {
+        headers: { "x-teacher-code": teacherCode },
+        cache: "no-store"
+    })
+    .then(function(r) {
+        return r.json().then(function(d) { return { ok: r.ok, status: r.status, data: d }; });
+    })
+    .then(function(res) {
+
+        if (!res.ok) {
+            if (res.status === 401 || res.status === 429) {
+                clearInterval(teacherTimer);
+                teacherCode = "";
+                try { sessionStorage.removeItem("teacherCode"); } catch (e) {}
+                document.getElementById("teacherError").innerText = res.data.error || "That code isn't right.";
+                showScreen("teacherLoginScreen");
+                return;
+            }
+            throw new Error(res.data.error || "Could not load results.");
+        }
+
+        try { sessionStorage.setItem("teacherCode", teacherCode); } catch (e) {}
+
+        teacherGames = res.data.games || [];
+        renderTeacherDashboard();
+        document.getElementById("tUpdated").innerText =
+            "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) +
+            " · refreshes automatically every 15 seconds";
+    })
+    .catch(function(err) {
+        if (firstLoad) {
+            document.getElementById("teacherContent").innerHTML =
+                '<p class="t-empty">' + escapeHTML(err.message === "Failed to fetch"
+                    ? "Couldn't reach the results server. Open the quiz from its website link to use the dashboard."
+                    : err.message) + '</p>';
+        }
+    });
+}
+
+document.getElementById("tRange").addEventListener("change", function() { loadTeacherData(true); });
+document.getElementById("tMode").addEventListener("change", renderTeacherDashboard);
+
+function filteredTeacherGames() {
+    const mode = document.getElementById("tMode").value;
+    return teacherGames.filter(function(g) {
+        return mode === "all" || g.mode === mode;
+    });
+}
+
+function pctClass(p) {
+    return p < 50 ? "t-low" : p < 75 ? "t-mid" : "t-high";
+}
+
+function topicName(category) {
+    // "🎮 GAMING ACCOUNT" -> "🎮 Gaming Account"
+    return category.replace(/([A-Z])([A-Z&']+)/g, function(m, a, b) { return a + b.toLowerCase(); });
+}
+
+function answerLabel(q, s) {
+    return s === -1 ? "⏰ Ran out of time" : (q.answers[s] || "?");
+}
+
+function renderTeacherDashboard() {
+
+    const games = filteredTeacherGames();
+    const box = document.getElementById("teacherContent");
+
+    if (!games.length) {
+        box.innerHTML =
+            '<p class="t-empty">No games in this period yet.<br>When students play at <b>' +
+            escapeHTML(location.host || "the quiz link") + '</b>, their answers will appear here live.</p>';
+        return;
+    }
+
+    /* --- Per question and per topic --- */
+
+    const perQ = questions.map(function() { return { n: 0, right: 0, wrong: {} }; });
+    const perTopic = {};
+
+    games.forEach(function(g) {
+        g.answers.forEach(function(a) {
+            const q = questions[a.q];
+            if (!q) return;
+            const stat = perQ[a.q];
+            stat.n++;
+            if (a.c) stat.right++;
+            else stat.wrong[a.s] = (stat.wrong[a.s] || 0) + 1;
+
+            const t = perTopic[q.category] || (perTopic[q.category] = { n: 0, right: 0 });
+            t.n++;
+            if (a.c) t.right++;
+        });
+    });
+
+    /* --- Summary tiles --- */
+
+    const names = new Set(games.map(function(g) { return g.name.toLowerCase(); }));
+    const finished = games.filter(function(g) { return g.finished; });
+    const playingNow = games.filter(function(g) {
+        return !g.finished && Date.now() - g.updated < 20 * 60 * 1000;
+    }).length;
+
+    let answeredTotal = 0, rightTotal = 0;
+    perQ.forEach(function(q) { answeredTotal += q.n; rightTotal += q.right; });
+    const avgPct = answeredTotal ? Math.round(rightTotal / answeredTotal * 100) : 0;
+
+    let html = `
+        <div class="t-tiles">
+            <div class="t-tile"><b>${names.size}</b><span>Students</span></div>
+            <div class="t-tile"><b>${finished.length}</b><span>Games finished</span></div>
+            <div class="t-tile"><b>${avgPct}%</b><span>Answers correct overall</span></div>
+            <div class="t-tile"><b>${playingNow}</b><span>Playing right now</span></div>
+        </div>`;
+
+    /* --- Topics --- */
+
+    const topics = Object.keys(perTopic).map(function(cat) {
+        const t = perTopic[cat];
+        return { cat: cat, n: t.n, pct: Math.round(t.right / t.n * 100) };
+    }).sort(function(a, b) { return a.pct - b.pct; });
+
+    html += `
+        <div class="t-section">
+            <h2>📉 Topics that need attention</h2>
+            <p class="t-hint">Percentage of answers that were the safest choice. Lowest first: these are the areas to revisit in class.</p>`;
+
+    topics.forEach(function(t) {
+        html += `
+            <div class="t-bar-row">
+                <span><b>${escapeHTML(topicName(t.cat))}</b> <span class="t-meta">(${t.n} answers)</span></span>
+                <div class="t-bar"><i class="${pctClass(t.pct)}" style="width:${t.pct}%"></i></div>
+                <span class="t-pct">${t.pct}%</span>
+            </div>`;
+    });
+
+    html += `</div>`;
+
+    /* --- Questions ranked by difficulty --- */
+
+    const qRows = perQ
+        .map(function(stat, i) { return { i: i, stat: stat }; })
+        .filter(function(r) { return r.stat.n > 0; })
+        .sort(function(a, b) { return a.stat.right / a.stat.n - b.stat.right / b.stat.n; });
+
+    html += `
+        <div class="t-section">
+            <h2>❓ Questions ranked from hardest to easiest</h2>
+            <p class="t-hint">The most common wrong answer shows the misconception students hold.</p>`;
+
+    qRows.forEach(function(r) {
+
+        const q = questions[r.i];
+        const pct = Math.round(r.stat.right / r.stat.n * 100);
+
+        let common = "";
+        const wrongKeys = Object.keys(r.stat.wrong);
+        if (wrongKeys.length) {
+            const top = wrongKeys.sort(function(a, b) { return r.stat.wrong[b] - r.stat.wrong[a]; })[0];
+            common = `<div class="t-q-wrong">Most common wrong answer: “${escapeHTML(answerLabel(q, Number(top)))}” (${r.stat.wrong[top]} of ${r.stat.n})</div>`;
+        }
+
+        html += `
+            <div class="t-q">
+                <div class="t-q-top">
+                    <span>Q${r.i + 1} · ${escapeHTML(topicName(q.category))}</span>
+                    <span>${r.stat.right}/${r.stat.n} correct</span>
+                </div>
+                <div class="t-q-text">${escapeHTML(q.question)}</div>
+                <div class="t-bar-row" style="grid-template-columns: 1fr 60px; margin:0;">
+                    <div class="t-bar"><i class="${pctClass(pct)}" style="width:${pct}%"></i></div>
+                    <span class="t-pct">${pct}%</span>
+                </div>
+                ${common}
+            </div>`;
+    });
+
+    html += `</div>`;
+
+    /* --- Students --- */
+
+    html += `
+        <div class="t-section">
+            <h2>👩‍🎓 Student results</h2>
+            <p class="t-hint">Newest first. Tap a student to see every answer they chose.</p>`;
+
+    games.forEach(function(g) {
+
+        // weakest topic for this game
+        const mine = {};
+        g.answers.forEach(function(a) {
+            const q = questions[a.q];
+            if (!q) return;
+            const t = mine[q.category] || (mine[q.category] = { n: 0, right: 0 });
+            t.n++;
+            if (a.c) t.right++;
+        });
+        let weakest = null;
+        Object.keys(mine).forEach(function(cat) {
+            const p = mine[cat].right / mine[cat].n;
+            if (p < 1 && (!weakest || p < weakest.p)) weakest = { cat: cat, p: p };
+        });
+
+        const when = new Date(g.at);
+        const timeText = when.toLocaleDateString([], { day: "numeric", month: "short" }) + " " +
+            when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        const status = g.finished
+            ? (g.mode === "learning" ? "📚 Learning" : "⚡ Challenge")
+            : "⏳ Playing · Q" + g.answered + "/" + g.total;
+
+        let detail = "";
+        if (!g.answers.length) {
+            detail = '<p class="t-meta">This game was played on an older version of the quiz, so individual answers weren\'t recorded.</p>';
+        } else {
+            g.answers.forEach(function(a) {
+                const q = questions[a.q];
+                if (!q) return;
+                detail += `
+                    <div class="t-ans">
+                        <span>${a.c ? "✅" : "❌"}</span>
+                        <b>Q${a.q + 1}</b>
+                        <span>${escapeHTML(q.question)}
+                            ${a.c ? "" : `<small>Chose: ${escapeHTML(answerLabel(q, a.s))}</small>`}
+                        </span>
+                    </div>`;
+            });
+        }
+
+        html += `
+            <details class="t-student">
+                <summary>
+                    <span class="lb-avatar">${avatarSVG(safeAvatar(g.avatar), "bust")}</span>
+                    <span class="t-name"><b>${escapeHTML(g.name)}</b><span>${status} · ${timeText}</span></span>
+                    ${weakest ? `<span class="t-weak">Needs work: ${escapeHTML(topicName(weakest.cat))}</span>` : `<span class="t-meta">${g.answered ? "No mistakes" : ""}</span>`}
+                    <span class="t-meta">${g.mode === "challenge" ? g.points + " pts" : ""}</span>
+                    <span class="t-score">${g.score}/${g.answered}</span>
+                </summary>
+                <div class="t-answers">${detail}</div>
+            </details>`;
+    });
+
+    html += `</div>`;
+
+    // keep open student rows open across live refreshes
+    const open = new Set();
+    box.querySelectorAll(".t-student[open]").forEach(function(d) { open.add(d.dataset.id); });
+
+    box.innerHTML = html;
+
+    box.querySelectorAll(".t-student").forEach(function(d, i) {
+        d.dataset.id = games[i].id;
+        if (open.has(games[i].id)) d.open = true;
+    });
+}
+
+function downloadTeacherCsv() {
+
+    const games = filteredTeacherGames();
+
+    function cell(v) {
+        const text = String(v == null ? "" : v);
+        return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+    }
+
+    const header = ["Name", "Mode", "Status", "Correct", "Answered", "Points", "Started"];
+    questions.forEach(function(q, i) { header.push("Q" + (i + 1)); });
+
+    const lines = [header.map(cell).join(",")];
+
+    games.forEach(function(g) {
+        const row = [
+            g.name,
+            g.mode,
+            g.finished ? "Finished" : "Not finished",
+            g.score,
+            g.answered,
+            g.mode === "challenge" ? g.points : "",
+            new Date(g.at).toLocaleString()
+        ];
+        const byQ = {};
+        g.answers.forEach(function(a) { byQ[a.q] = a; });
+        questions.forEach(function(q, i) {
+            const a = byQ[i];
+            row.push(!a ? "" : a.c ? "Correct" : "Wrong: " + answerLabel(q, a.s));
+        });
+        lines.push(row.map(cell).join(","));
+    });
+
+    const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "quiz-results-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(function() { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
 }
 
 

@@ -1,27 +1,25 @@
 /*
-  Shared leaderboard API for the Online Awareness Quiz.
+  Leaderboard + progress API for the Online Awareness Quiz.
 
-  GET  /api/leaderboard          -> top 10 players (including people still playing)
-  POST /api/leaderboard          -> save progress after each question.
-                                    First call creates an entry and returns { id, token };
-                                    later calls send { id, token } to update that same entry.
+  GET  /api/leaderboard   -> top 10 Challenge players (including people still playing)
+  POST /api/leaderboard   -> save progress after each question (both modes).
+                             First call creates a game and returns { id, token };
+                             later calls send { id, token } to update that same game.
 
-  Data lives in the Redis database connected to this Vercel project (REDIS_URL):
-    quiz:board      sorted set   member = entry id, score = points
-    quiz:entries    hash         entry id -> JSON { name, points, score, total, avatar, at }
+  Every game (Challenge and Learning) is kept for the teacher dashboard (quiz:games).
+  Only Challenge games appear on the public leaderboard (quiz:board).
 */
 
-const { createClient } = require("redis");
 const crypto = require("crypto");
+const { KEYS, getClient, overLimit, readBody } = require("../lib/db");
 
-const BOARD_KEY = "quiz:board";
-const ENTRIES_KEY = "quiz:entries";
-const KEEP = 100;          // only the best 100 results are stored
-const TOP = 10;            // how many are shown
+const TOP = 10;                       // leaderboard rows shown
+const KEEP_ON_BOARD = 100;            // best Challenge results kept on the leaderboard
+const KEEP_GAMES = 3000;              // most recent games kept for teachers
 const MAX_POINTS_PER_QUESTION = 1000;
 const MAX_QUESTIONS = 50;
-const STALE_MS = 20 * 60 * 1000;   // unfinished games idle this long are hidden
-const RATE_LIMIT = 300;            // requests per minute per network (a class shares one school Wi-Fi)
+const STALE_MS = 20 * 60 * 1000;      // unfinished games idle this long are hidden from the leaderboard
+const RATE_LIMIT = 300;               // requests per minute per network (a class shares one school Wi-Fi)
 
 // Values the avatar builder can produce. Anything else is rejected.
 const AVATAR_STYLES = {
@@ -42,18 +40,6 @@ const BLOCKED_ANYWHERE = [
 const BLOCKED_WORDS = [
   "sex", "kill", "rape", "nazi", "babi", "bodoh", "sial", "dick", "fag", "bastard"
 ];
-
-let clientPromise = null;
-
-function getClient() {
-  if (!clientPromise) {
-    const client = createClient({ url: process.env.REDIS_URL });
-    client.on("error", function () {});
-    clientPromise = client.connect().then(function () { return client; });
-    clientPromise.catch(function () { clientPromise = null; });
-  }
-  return clientPromise;
-}
 
 function cleanName(raw) {
   if (typeof raw !== "string") return null;
@@ -80,10 +66,25 @@ function cleanAvatar(raw) {
   return out;
 }
 
+// answers: [{ q: question index, s: chosen answer index (-1 = time ran out), c: correct? }]
+function cleanAnswers(raw, total) {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw) || raw.length > total) return null;
+  const out = [];
+  for (const a of raw) {
+    if (!a || typeof a !== "object") return null;
+    const q = Number(a.q), sel = Number(a.s);
+    if (!Number.isInteger(q) || q < 0 || q >= total) return null;
+    if (!Number.isInteger(sel) || sel < -1 || sel > 3) return null;
+    out.push({ q: q, s: sel, c: a.c === true });
+  }
+  return out;
+}
+
 async function readTop(redis) {
-  const ids = await redis.zRange(BOARD_KEY, 0, TOP * 3 - 1, { REV: true });
+  const ids = await redis.zRange(KEYS.BOARD, 0, TOP * 3 - 1, { REV: true });
   if (!ids.length) return [];
-  const rows = await redis.hmGet(ENTRIES_KEY, ids);
+  const rows = await redis.hmGet(KEYS.ENTRIES, ids);
   const now = Date.now();
   return rows
     .map(function (json, i) {
@@ -104,22 +105,24 @@ async function readTop(redis) {
     .slice(0, TOP);
 }
 
-function readBody(req) {
-  const b = req.body;
-  if (b && typeof b === "object" && !Buffer.isBuffer(b)) return Promise.resolve(b);
-  if (typeof b === "string" || Buffer.isBuffer(b)) {
-    try { return Promise.resolve(JSON.parse(String(b) || "{}")); } catch (e) { return Promise.resolve({}); }
+async function trim(redis) {
+
+  // Leaderboard: keep the best KEEP_ON_BOARD (the game records stay for teachers)
+  const boardSize = await redis.zCard(KEYS.BOARD);
+  if (boardSize > KEEP_ON_BOARD) {
+    await redis.zRemRangeByRank(KEYS.BOARD, 0, boardSize - KEEP_ON_BOARD - 1);
   }
-  return new Promise(function (resolve) {
-    let data = "";
-    req.on("data", function (chunk) {
-      data += chunk;
-      if (data.length > 10000) req.destroy();
-    });
-    req.on("end", function () {
-      try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({}); }
-    });
-  });
+
+  // Teacher history: keep the most recent KEEP_GAMES games
+  const gamesSize = await redis.zCard(KEYS.GAMES);
+  if (gamesSize > KEEP_GAMES) {
+    const old = await redis.zRange(KEYS.GAMES, 0, gamesSize - KEEP_GAMES - 1);
+    if (old.length) {
+      await redis.zRem(KEYS.GAMES, old);
+      await redis.zRem(KEYS.BOARD, old);
+      await redis.hDel(KEYS.ENTRIES, old);
+    }
+  }
 }
 
 module.exports = async function handler(req, res) {
@@ -140,29 +143,12 @@ module.exports = async function handler(req, res) {
   try {
 
     if (req.method === "GET") {
-
-      // Health check: /api/leaderboard?selftest=1 writes, reads and deletes a test value
-      const url = new URL(req.url || "/", "http://localhost");
-      if (url.searchParams.get("selftest") === "1") {
-        const key = "quiz:selftest";
-        await redis.set(key, "ok", { EX: 30 });
-        const back = await redis.get(key);
-        await redis.del(key);
-        const size = await redis.zCard(BOARD_KEY);
-        return res.status(200).json({ write: back === "ok", savedResults: size });
-      }
-
       return res.status(200).json({ top: await readTop(redis) });
     }
 
     if (req.method === "POST") {
 
-      // Rate limit per network
-      const ip = String(req.headers["x-forwarded-for"] || "unknown").split(",")[0].trim();
-      const rlKey = "quiz:rl:" + ip;
-      const count = await redis.incr(rlKey);
-      if (count === 1) await redis.expire(rlKey, 60);
-      if (count > RATE_LIMIT) {
+      if (await overLimit(redis, "save", req, RATE_LIMIT)) {
         return res.status(429).json({ error: "Too many requests. Please wait a minute." });
       }
 
@@ -171,6 +157,7 @@ module.exports = async function handler(req, res) {
       const total = Number(body.total);
       const score = Number(body.score);
       const points = Number(body.points);
+      const mode = body.mode === "learning" ? "learning" : "challenge";
 
       // Older versions of the page sent only the final score (no "answered"):
       // treat those as a finished game so they still count.
@@ -178,14 +165,23 @@ module.exports = async function handler(req, res) {
       const answered = legacy ? total : Number(body.answered);
       const finished = legacy ? true : body.finished === true;
 
-      const problem =
+      const maxPoints = mode === "learning" ? 0 : MAX_POINTS_PER_QUESTION;
+
+      let problem =
         !Number.isInteger(total) || total < 1 || total > MAX_QUESTIONS ? "total questions = " + body.total :
         !Number.isInteger(answered) || answered < 1 || answered > total ? "question number = " + body.answered :
         finished && answered !== total ? "finished before the last question" :
         !Number.isInteger(score) || score < 0 || score > answered ? "correct answers = " + body.score :
         !Number.isInteger(points) || points < 0 ? "points = " + body.points :
-        points > score * MAX_POINTS_PER_QUESTION ? "points " + points + " too high for " + score + " correct" :
+        points > score * maxPoints ? "points " + points + " too high for " + score + " correct" :
         null;
+
+      const answers = problem ? null : cleanAnswers(body.answers, total);
+      if (!problem && !answers) problem = "answer list";
+      if (!problem && answers.length && answers.length !== answered) problem = "answer list length";
+      if (!problem && answers.length && answers.filter(function (a) { return a.c; }).length !== score) {
+        problem = "answer list does not match score";
+      }
 
       if (problem) {
         return res.status(400).json({ error: "Invalid score (" + String(problem).slice(0, 60) + ")." });
@@ -197,7 +193,7 @@ module.exports = async function handler(req, res) {
 
         // Update an existing game: must match its secret token
         id = String(body.id).slice(0, 40);
-        const json = await redis.hGet(ENTRIES_KEY, id);
+        const json = await redis.hGet(KEYS.ENTRIES, id);
         if (!json) return res.status(404).json({ error: "Game not found." });
         entry = JSON.parse(json);
         token = String(body.token || "");
@@ -210,10 +206,12 @@ module.exports = async function handler(req, res) {
         if (answered < entry.answered || points < entry.points || score < entry.score) {
           return res.status(400).json({ error: "Score can't go down." });
         }
+
         entry.answered = answered;
         entry.score = score;
         entry.points = points;
         entry.finished = finished;
+        if (answers.length) entry.answers = answers;
         entry.updated = Date.now();
 
       } else {
@@ -228,31 +226,29 @@ module.exports = async function handler(req, res) {
         id = Date.now().toString(36) + crypto.randomBytes(4).toString("hex");
         token = crypto.randomBytes(16).toString("hex");
         entry = {
-          name: name, avatar: avatar, total: total, answered: answered,
-          score: score, points: points, finished: finished,
+          name: name, avatar: avatar, mode: mode, total: total, answered: answered,
+          score: score, points: points, finished: finished, answers: answers,
           token: token, at: Date.now(), updated: Date.now()
         };
       }
 
-      await redis.hSet(ENTRIES_KEY, id, JSON.stringify(entry));
-      await redis.zAdd(BOARD_KEY, { score: entry.points, value: id });
+      await redis.hSet(KEYS.ENTRIES, id, JSON.stringify(entry));
+      await redis.zAdd(KEYS.GAMES, { score: entry.at, value: id });
 
-      // Keep only the best KEEP results
-      const size = await redis.zCard(BOARD_KEY);
-      if (size > KEEP) {
-        const drop = (await redis.zRange(BOARD_KEY, 0, size - KEEP - 1)).filter(function (d) { return d !== id; });
-        if (drop.length) {
-          await redis.zRem(BOARD_KEY, drop);
-          await redis.hDel(ENTRIES_KEY, drop);
-        }
+      let rank = null;
+
+      if ((entry.mode || "challenge") === "challenge") {
+        await redis.zAdd(KEYS.BOARD, { score: entry.points, value: id });
+        const rankIndex = await redis.zRevRank(KEYS.BOARD, id);
+        rank = rankIndex === null ? null : rankIndex + 1;
       }
 
-      const rankIndex = await redis.zRevRank(BOARD_KEY, id);
+      await trim(redis);
 
       return res.status(200).json({
         id: id,
         token: token,
-        rank: rankIndex === null ? null : rankIndex + 1,
+        rank: rank,
         top: await readTop(redis)
       });
     }
