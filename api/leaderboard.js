@@ -105,7 +105,11 @@ async function readTop(redis) {
 }
 
 function readBody(req) {
-  if (req.body && typeof req.body === "object") return Promise.resolve(req.body);
+  const b = req.body;
+  if (b && typeof b === "object" && !Buffer.isBuffer(b)) return Promise.resolve(b);
+  if (typeof b === "string" || Buffer.isBuffer(b)) {
+    try { return Promise.resolve(JSON.parse(String(b) || "{}")); } catch (e) { return Promise.resolve({}); }
+  }
   return new Promise(function (resolve) {
     let data = "";
     req.on("data", function (chunk) {
@@ -165,18 +169,26 @@ module.exports = async function handler(req, res) {
       const body = await readBody(req);
 
       const total = Number(body.total);
-      const answered = Number(body.answered);
       const score = Number(body.score);
       const points = Number(body.points);
-      const finished = body.finished === true;
 
-      if (!Number.isInteger(total) || total < 1 || total > MAX_QUESTIONS ||
-          !Number.isInteger(answered) || answered < 1 || answered > total ||
-          (finished && answered !== total) ||
-          !Number.isInteger(score) || score < 0 || score > answered ||
-          !Number.isInteger(points) || points < 0 ||
-          points > score * MAX_POINTS_PER_QUESTION) {
-        return res.status(400).json({ error: "Invalid score." });
+      // Older versions of the page sent only the final score (no "answered"):
+      // treat those as a finished game so they still count.
+      const legacy = body.answered === undefined;
+      const answered = legacy ? total : Number(body.answered);
+      const finished = legacy ? true : body.finished === true;
+
+      const problem =
+        !Number.isInteger(total) || total < 1 || total > MAX_QUESTIONS ? "total questions = " + body.total :
+        !Number.isInteger(answered) || answered < 1 || answered > total ? "question number = " + body.answered :
+        finished && answered !== total ? "finished before the last question" :
+        !Number.isInteger(score) || score < 0 || score > answered ? "correct answers = " + body.score :
+        !Number.isInteger(points) || points < 0 ? "points = " + body.points :
+        points > score * MAX_POINTS_PER_QUESTION ? "points " + points + " too high for " + score + " correct" :
+        null;
+
+      if (problem) {
+        return res.status(400).json({ error: "Invalid score (" + String(problem).slice(0, 60) + ")." });
       }
 
       let id, token, entry;
