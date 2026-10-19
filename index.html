@@ -768,6 +768,182 @@ body {
     white-space: nowrap;
 }
 
+/* ---------- GAME MODES ---------- */
+
+.mode-picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 6px 0 4px;
+}
+
+.mode-option {
+    border: 3px solid #e4e4e7;
+    background: #faf8ff;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #333;
+    font: inherit;
+}
+
+.mode-option.selected {
+    border-color: #46178f;
+    background: #efe7fb;
+}
+
+.mode-title {
+    font-weight: bold;
+    font-size: 17px;
+    color: #46178f;
+}
+
+.mode-desc {
+    font-size: 13px;
+    color: #555;
+}
+
+body.learning-mode .timer-section,
+body.learning-mode .points-live {
+    display: none;
+}
+
+.points-earned {
+    margin: -8px 0 0;
+    font-weight: bold;
+    color: #46178f;
+}
+
+.points-earned:empty {
+    display: none;
+}
+
+.learning-note {
+    color: #555;
+    font-weight: bold;
+}
+
+.learning-note:empty {
+    display: none;
+}
+
+/* ---------- POINTS HELP ---------- */
+
+.points-help {
+    text-align: left;
+    background: #f4f4f5;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 16px 0 6px;
+}
+
+.points-help summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: #46178f;
+}
+
+.points-help-body p {
+    margin: 10px 0;
+    line-height: 1.5;
+}
+
+.formula {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    background: white;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-weight: bold;
+}
+
+.pb-row {
+    display: grid;
+    grid-template-columns: 44px 26px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 0;
+    border-top: 1px solid #e4e4e7;
+    font-size: 14px;
+}
+
+.pb-total {
+    font-weight: bold;
+    text-align: right;
+    padding-top: 8px;
+}
+
+/* ---------- RECAP ---------- */
+
+.recap {
+    text-align: left;
+    margin-top: 26px;
+}
+
+.recap:empty {
+    display: none;
+}
+
+.recap h2 {
+    color: #46178f;
+    text-align: center;
+}
+
+.recap-card {
+    border: 2px solid #fde2e2;
+    background: #fff7f7;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 12px 0;
+}
+
+.recap-meta {
+    font-size: 13px;
+    font-weight: bold;
+    color: #6b21a8;
+}
+
+.recap-question {
+    font-weight: bold;
+    margin: 6px 0 10px;
+    line-height: 1.4;
+}
+
+.recap-line {
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.recap-wrong {
+    color: #b91c1c;
+}
+
+.recap-right {
+    color: #15803d;
+}
+
+.recap-why {
+    margin-top: 8px;
+    color: #444;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.recap-perfect {
+    text-align: center;
+    font-weight: bold;
+    color: #15803d;
+}
+
+@media (max-width: 650px) {
+    .mode-picker {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ---------- SOUND TOGGLE ---------- */
 
 .audio-controls {
@@ -911,6 +1087,21 @@ body {
 
         </div>
 
+        <!-- GAME MODE -->
+        <div class="mode-picker" id="modePicker">
+
+            <button type="button" class="mode-option selected" data-mode="challenge">
+                <span class="mode-title">⚡ Challenge</span>
+                <span class="mode-desc">60-second timer · faster answers earn more points · live leaderboard</span>
+            </button>
+
+            <button type="button" class="mode-option" data-mode="learning">
+                <span class="mode-title">📚 Learning</span>
+                <span class="mode-desc">No timer · take your time to think · practice only, not on the leaderboard</span>
+            </button>
+
+        </div>
+
         <input
             id="nameInput"
             class="name-input"
@@ -1003,7 +1194,7 @@ body {
             Score: <span id="liveScore">0</span>/<span class="totalQuestions">6</span>
         </span>
 
-        <span>
+        <span class="points-live">
             Points: <span id="livePoints">0</span>
         </span>
 
@@ -1028,6 +1219,7 @@ body {
 
             <div>
                 <h1 id="answerResult"></h1>
+                <p id="pointsEarned" class="points-earned"></p>
                 <h2 id="correctAnswer"></h2>
             </div>
 
@@ -1088,11 +1280,38 @@ body {
         0
     </div>
 
-    <div class="points-display">
+    <div class="points-display" id="pointsDisplay">
 
         <strong id="finalPoints">0</strong> points
 
     </div>
+
+    <p id="learningNote" class="learning-note"></p>
+
+
+    <!-- HOW POINTS WORK + this player's breakdown -->
+    <details class="points-help" id="pointsHelp">
+
+        <summary>🧮 How are points calculated?</summary>
+
+        <div class="points-help-body">
+            <p>
+                Each <strong>correct</strong> answer earns
+                <strong>500 points</strong> for being right, plus a
+                <strong>speed bonus of up to 500</strong>:
+            </p>
+            <p class="formula">
+                points = 500 + 500 × (seconds left ÷ 60)
+            </p>
+            <p>
+                Answer with 60 seconds left → 1000 points.
+                With 30 seconds left → 750. With 6 seconds left → 550.
+                Wrong answers and running out of time earn 0.
+            </p>
+            <div id="pointsBreakdown"></div>
+        </div>
+
+    </details>
 
 
     <div class="leaderboard">
@@ -1104,6 +1323,10 @@ body {
         <div id="leaderboardList"></div>
 
     </div>
+
+
+    <!-- RECAP OF MISSED QUESTIONS -->
+    <div id="recap" class="recap"></div>
 
 
     <button
@@ -2188,6 +2411,15 @@ let lastLocalEntry = null;   // this player's result in the local list
 
 let liveRefreshTimer = null; // refreshes the shared board while results are showing
 
+// "challenge" (timed, points, leaderboard) or "learning" (untimed practice)
+let quizMode = "challenge";
+try {
+    if (localStorage.getItem("quizMode") === "learning") quizMode = "learning";
+} catch (e) {}
+
+// One record per answered question, used for the recap and points breakdown
+let history = [];
+
 // Shuffled answer order for the current question.
 // answerOrder[buttonIndex] = index in q.answers
 let answerOrder = [0, 1, 2, 3];
@@ -2234,6 +2466,10 @@ function startQuiz() {
     SoundFX.unlock();   // browsers only allow audio after a user click
 
     resetLiveGame();    // new game = new entry on the shared leaderboard
+
+    history = [];
+
+    document.body.classList.toggle("learning-mode", quizMode === "learning");
 
     SoundFX.music(1, 0.8);   // background music starts with the quiz
 
@@ -2312,7 +2548,17 @@ function showQuestion() {
     });
 
 
-    startTimer();
+    if (quizMode === "learning") {
+
+        clearInterval(timerInterval);   // untimed: think as long as you need
+
+    }
+
+    else {
+
+        startTimer();
+
+    }
 
 }
 
@@ -2414,9 +2660,16 @@ function answerQuestion(selected) {
         selected === q.correct;
 
 
+    let questionPoints = 0;
+
     if (correct) {
 
         score++;
+
+    }
+
+
+    if (correct && quizMode === "challenge") {
 
 
         /*
@@ -2426,7 +2679,7 @@ function answerQuestion(selected) {
         1000 points per question.
         */
 
-        let questionPoints =
+        questionPoints =
             500 + Math.round(
                 (timeLeft / 60) * 500
             );
@@ -2531,10 +2784,46 @@ function answerQuestion(selected) {
         avatarSVG(avatar, "full", mood);
 
 
+    /* RECORD THIS QUESTION (for the recap and points breakdown) */
+
+    history.push({
+        index: currentQuestion,
+        selected: selected,
+        correct: correct,
+        timedOut: selected === -1,
+        points: questionPoints,
+        secondsLeft: timeLeft
+    });
+
+
+    /* EXPLAIN THE POINTS FOR THIS QUESTION */
+
+    const pointsEarned =
+        document.getElementById("pointsEarned");
+
+    if (quizMode === "learning") {
+        pointsEarned.innerText = "";
+    }
+    else if (correct) {
+        pointsEarned.innerText =
+            "+" + questionPoints + " points = 500 for a correct answer + " +
+            (questionPoints - 500) + " speed bonus (" + timeLeft + "s left)";
+    }
+    else {
+        pointsEarned.innerText =
+            "+0 points" + (selected === -1 ? " (time ran out)" : " (only correct answers earn points)");
+    }
+
+
     showScreen("explanationScreen");
 
 
-    saveProgressAndShowStandings();   // share this score with other players now
+    if (quizMode === "challenge") {
+        saveProgressAndShowStandings();   // share this score with other players now
+    }
+    else {
+        document.getElementById("liveStandings").innerHTML = "";
+    }
 
 }
 
@@ -2583,7 +2872,9 @@ function finishQuiz() {
 
     };
 
-    leaderboard.push(lastLocalEntry);
+    if (quizMode === "challenge") {
+        leaderboard.push(lastLocalEntry);
+    }
 
 
     /*
@@ -2616,10 +2907,35 @@ function finishQuiz() {
     document.getElementById("leaderboardList").innerHTML = "";
 
 
+    renderRecap();
+
+    renderPointsBreakdown();
+
+    document.getElementById("pointsHelp").open = false;
+
+
+    const learning = quizMode === "learning";
+
+    document.getElementById("pointsDisplay").style.display = learning ? "none" : "";
+    document.getElementById("pointsHelp").style.display = learning ? "none" : "";
+    document.querySelector("#resultScreen .leaderboard").style.display = learning ? "none" : "";
+
+    document.getElementById("learningNote").innerText = learning
+        ? "📚 Learning mode: practice only, so this score isn't added to the leaderboard. Try ⚡ Challenge mode to compete!"
+        : "";
+
+
     showScreen("resultScreen");
 
 
-    submitGlobalScore();   // save to the shared leaderboard, then show it
+    if (learning) {
+        shownBoard = [];
+        document.getElementById("podium").innerHTML = "";
+        launchConfetti();
+    }
+    else {
+        submitGlobalScore();   // save to the shared leaderboard, then show it
+    }
 
     SoundFX.celebrate();   // celebration when the leaderboard appears
 
@@ -2864,6 +3180,109 @@ function submitGlobalScore() {
                 : "Couldn't reach the shared leaderboard.";
             showLocalBoard(message);
         });
+}
+
+
+/* ===================================
+   GAME MODE PICKER
+=================================== */
+
+function updateModePicker() {
+    document.querySelectorAll(".mode-option").forEach(function(btn) {
+        btn.classList.toggle("selected", btn.dataset.mode === quizMode);
+        btn.setAttribute("aria-pressed", btn.dataset.mode === quizMode ? "true" : "false");
+    });
+}
+
+document.getElementById("modePicker").addEventListener("click", function(e) {
+    const btn = e.target.closest("[data-mode]");
+    if (!btn) return;
+    quizMode = btn.dataset.mode;
+    try { localStorage.setItem("quizMode", quizMode); } catch (err) {}
+    SoundFX.click();
+    updateModePicker();
+});
+
+updateModePicker();
+
+
+/* ===================================
+   RECAP OF MISSED QUESTIONS
+=================================== */
+
+function renderRecap() {
+
+    const box = document.getElementById("recap");
+    const missed = history.filter(function(h) { return !h.correct; });
+
+    if (!history.length) {
+        box.innerHTML = "";
+        return;
+    }
+
+    if (!missed.length) {
+        box.innerHTML = '<h2>📝 Recap</h2><p class="recap-perfect">🌟 You chose the safest answer every time!</p>';
+        return;
+    }
+
+    let html = '<h2>📝 Review your missed questions (' + missed.length + ')</h2>';
+
+    missed.forEach(function(h) {
+
+        const q = questions[h.index];
+
+        const yourAnswer = h.timedOut
+            ? "⏰ Ran out of time"
+            : escapeHTML(q.answers[h.selected]);
+
+        html += `
+            <div class="recap-card">
+                <div class="recap-meta">Question ${h.index + 1} · ${escapeHTML(q.category)}</div>
+                <div class="recap-question">${escapeHTML(q.question)}</div>
+                <div class="recap-line recap-wrong">✗ Your answer: ${yourAnswer}</div>
+                <div class="recap-line recap-right">✓ Safest answer: ${escapeHTML(q.answers[q.correct])}</div>
+                <div class="recap-why">${escapeHTML(q.explanation)}</div>
+            </div>`;
+    });
+
+    box.innerHTML = html;
+}
+
+
+/* ===================================
+   POINTS BREAKDOWN (Challenge mode)
+=================================== */
+
+function renderPointsBreakdown() {
+
+    const box = document.getElementById("pointsBreakdown");
+
+    if (quizMode !== "challenge" || !history.length) {
+        box.innerHTML = "";
+        return;
+    }
+
+    let html = '<p><strong>Your points, question by question:</strong></p>';
+
+    history.forEach(function(h) {
+
+        let detail;
+        if (h.correct) detail = "500 + " + (h.points - 500) + " speed bonus (" + h.secondsLeft + "s left)";
+        else if (h.timedOut) detail = "Time ran out";
+        else detail = "Not the safest answer";
+
+        html += `
+            <div class="pb-row">
+                <span>Q${h.index + 1}</span>
+                <span>${h.correct ? "✓" : "✗"}</span>
+                <span>${detail}</span>
+                <strong>${h.points}</strong>
+            </div>`;
+    });
+
+    html += '<div class="pb-total">Total: ' + points + ' points</div>';
+
+    box.innerHTML = html;
 }
 
 
