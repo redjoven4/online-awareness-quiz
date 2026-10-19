@@ -126,7 +126,8 @@ module.exports = async function handler(req, res) {
     if (req.method === "GET") {
 
       // Health check: /api/leaderboard?selftest=1 writes, reads and deletes a test value
-      if (String(req.query && req.query.selftest) === "1") {
+      const url = new URL(req.url || "/", "http://localhost");
+      if (url.searchParams.get("selftest") === "1") {
         const key = "quiz:selftest";
         await redis.set(key, "ok", { EX: 30 });
         const back = await redis.get(key);
