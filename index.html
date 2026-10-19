@@ -1270,6 +1270,46 @@ body.learning-mode .points-live {
     }
 }
 
+/* ---------- EXIT ---------- */
+
+.top-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.exit-button {
+    background: rgba(255,255,255,0.18);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.35);
+    border-radius: 30px;
+    padding: 8px 14px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.exit-button:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.exit-link {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    background: none;
+    border: none;
+    color: #46178f;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 8px;
+}
+
+.exit-link:hover {
+    text-decoration: underline;
+}
+
 /* ---------- SOUND TOGGLE ---------- */
 
 .audio-controls {
@@ -1565,8 +1605,14 @@ body.learning-mode .points-live {
             <span id="playerDisplay"></span>
         </div>
 
-        <div class="question-count" id="questionCount">
-            Question 1
+        <div class="top-right">
+
+            <div class="question-count" id="questionCount">
+                Question 1
+            </div>
+
+            <button type="button" class="exit-button" onclick="exitToHome()">🏠 Exit</button>
+
         </div>
 
     </div>
@@ -1686,6 +1732,8 @@ body.learning-mode .points-live {
 
         </button>
 
+        <button type="button" class="exit-link" onclick="exitToHome()">🏠 Exit to home page</button>
+
     </div>
 
 </div>
@@ -1765,6 +1813,8 @@ body.learning-mode .points-live {
         Play Again
 
     </button>
+
+    <button type="button" class="exit-link" onclick="exitToHome(true)">🏠 Back to home page</button>
 
 </div>
 
@@ -3722,6 +3772,30 @@ function renderPointsBreakdown() {
 
 
 /* ===================================
+   EXIT TO HOME PAGE
+=================================== */
+
+function exitToHome(skipConfirm) {
+
+    const midGame =
+        !skipConfirm &&
+        (document.getElementById("questionScreen").classList.contains("active") ||
+         document.getElementById("explanationScreen").classList.contains("active"));
+
+    if (midGame) {
+        const ok = window.confirm(
+            "Leave the quiz and go back to the home page?\n\nYour answers so far are saved, but this game won't be finished."
+        );
+        if (!ok) return;
+    }
+
+    resetQuiz();   // stops the timer, sounds, music and live updates, and clears this game
+
+    showScreen("roleScreen");
+}
+
+
+/* ===================================
    STUDENT / TEACHER
 =================================== */
 
@@ -3996,7 +4070,9 @@ function renderTeacherDashboard() {
 
         const status = g.finished
             ? (g.mode === "learning" ? "📚 Learning" : "⚡ Challenge")
-            : "⏳ Playing · Q" + g.answered + "/" + g.total;
+            : Date.now() - g.updated > 20 * 60 * 1000
+                ? "🚪 Left at Q" + g.answered + "/" + g.total
+                : "⏳ Playing · Q" + g.answered + "/" + g.total;
 
         let detail = "";
         if (!g.answers.length) {

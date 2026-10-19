@@ -52,8 +52,10 @@ module.exports = async function handler(req, res) {
       return res.status(429).json({ error: "Too many wrong codes. Please wait a minute." });
     }
 
-    const given = String(req.headers["x-teacher-code"] || "").trim();
-    if (!given || !sameCode(given.toLowerCase(), String(expected).trim().toLowerCase())) {
+    // Ignore capitals and spaces, so "Teacher 101" and "teacher101" both work
+    const normalise = function (v) { return String(v || "").toLowerCase().replace(/\s+/g, ""); };
+    const given = normalise(req.headers["x-teacher-code"]);
+    if (!given || !sameCode(given, normalise(expected))) {
       const n = await redis.incr(failKey);
       if (n === 1) await redis.expire(failKey, 60);
       return res.status(401).json({ error: "That teacher code isn't right." });
