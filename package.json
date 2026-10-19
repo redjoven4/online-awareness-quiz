@@ -1,0 +1,12 @@
+{
+  "name": "online-awareness-quiz",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Online Awareness Quiz with a shared leaderboard",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "redis": "^4.7.0"
+  }
+}

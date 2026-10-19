@@ -677,6 +677,27 @@ body {
     .confetti-layer { display: none; }
 }
 
+/* ---------- SHARED LEADERBOARD ---------- */
+
+.lb-status {
+    text-align: center;
+    color: #555;
+    font-weight: bold;
+    margin: -4px 0 12px;
+    min-height: 1.2em;
+}
+
+.leaderboard-row.me {
+    background: #efe7fb;
+    box-shadow: inset 0 0 0 3px #46178f;
+}
+
+.podium-loading {
+    align-self: center;
+    color: #666;
+    font-weight: bold;
+}
+
 /* ---------- SOUND TOGGLE ---------- */
 
 .audio-controls {
@@ -1003,7 +1024,9 @@ body {
 
     <div class="leaderboard">
 
-        <h2>🏆 Leaderboard</h2>
+        <h2>🌍 Leaderboard</h2>
+
+        <p id="leaderboardStatus" class="lb-status"></p>
 
         <div id="leaderboardList"></div>
 
@@ -2082,7 +2105,13 @@ let timeLeft = 60;
 
 let timerInterval;
 
-let leaderboard = [];
+let leaderboard = [];        // this device's results (used if the shared board is unreachable)
+
+let shownBoard = [];         // what the podium + leaderboard are currently showing
+
+let myEntryId = null;        // id of this player's saved result on the shared board
+
+let lastLocalEntry = null;   // this player's result in the local list
 
 // Shuffled answer order for the current question.
 // answerOrder[buttonIndex] = index in q.answers
@@ -2462,7 +2491,7 @@ function nextQuestion() {
 
 function finishQuiz() {
 
-    leaderboard.push({
+    lastLocalEntry = {
 
         name: playerName,
 
@@ -2472,7 +2501,9 @@ function finishQuiz() {
 
         avatar: Object.assign({}, avatar)
 
-    });
+    };
+
+    leaderboard.push(lastLocalEntry);
 
 
     /*
@@ -2490,7 +2521,8 @@ function finishQuiz() {
         playerName;
 
 
-    renderPodium();
+    document.getElementById("podium").innerHTML =
+        '<div class="podium-loading">Loading leaderboard…</div>';
 
 
     document.getElementById("finalScore").innerText =
@@ -2501,15 +2533,121 @@ function finishQuiz() {
         points;
 
 
-    displayLeaderboard();
+    document.getElementById("leaderboardList").innerHTML = "";
 
 
     showScreen("resultScreen");
+
+
+    submitGlobalScore();   // save to the shared leaderboard, then show it
 
     SoundFX.celebrate();   // celebration when the leaderboard appears
 
     SoundFX.music(0.8, 1.5, 1.4);   // music fades back in after the fanfare
 
+}
+
+
+/* ===================================
+   SHARED LEADERBOARD (Redis via /api/leaderboard)
+=================================== */
+
+function isMe(player) {
+    return (myEntryId && player.id === myEntryId) || player === lastLocalEntry;
+}
+
+// Only accept avatar values the builder can produce
+function safeAvatar(a) {
+    const fallback = {
+        skin: "#F1C27D", hair: "short", hairColor: "#1F1A17",
+        shirt: "tee", shirtColor: "#1368CE", legs: "jeans",
+        legColor: "#1E3A8A", shoes: "sneakers", shoeColor: "#F9FAFB"
+    };
+    if (!a || typeof a !== "object") return fallback;
+    const hex = /^#[0-9a-fA-F]{6}$/;
+    const out = {};
+    for (const key in fallback) {
+        const styles = AVATAR_OPTIONS[key];
+        const ok = Array.isArray(styles) && typeof styles[0] === "object"
+            ? styles.some(function(s) { return s.id === a[key]; })
+            : typeof a[key] === "string" && hex.test(a[key]);
+        out[key] = ok ? a[key] : fallback[key];
+    }
+    return out;
+}
+
+function showResultsBoard(list, statusText) {
+    shownBoard = list;
+    document.getElementById("leaderboardStatus").innerText = statusText || "";
+    renderPodium();
+    displayLeaderboard();
+}
+
+function showLocalBoard(reason) {
+    myEntryId = null;
+    showResultsBoard(
+        leaderboard.slice(),
+        reason + " Showing scores from this device only."
+    );
+}
+
+function submitGlobalScore() {
+
+    myEntryId = null;
+
+    document.getElementById("leaderboardStatus").innerText =
+        "Saving your score…";
+
+    const controller = window.AbortController ? new AbortController() : null;
+    const timeout = setTimeout(function() {
+        if (controller) controller.abort();
+    }, 8000);
+
+    fetch("/api/leaderboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            name: playerName,
+            avatar: avatar,
+            score: score,
+            points: points,
+            total: questions.length
+        }),
+        signal: controller ? controller.signal : undefined
+    })
+    .then(function(response) {
+        return response.json().then(function(data) {
+            if (!response.ok) throw new Error(data.error || "Could not save score.");
+            return data;
+        });
+    })
+    .then(function(data) {
+        clearTimeout(timeout);
+        myEntryId = data.id;
+
+        const list = (data.top || []).map(function(e) {
+            return {
+                id: e.id,
+                name: String(e.name || "Player"),
+                points: Number(e.points) || 0,
+                score: Number(e.score) || 0,
+                avatar: safeAvatar(e.avatar)
+            };
+        });
+
+        let status = "";
+        if (data.rank && data.rank <= 10) status = "🎉 You placed #" + data.rank + " on the leaderboard!";
+        else if (data.rank) status = "You're #" + data.rank + " overall. Keep playing to reach the top 10!";
+
+        showResultsBoard(list, status);
+    })
+    .catch(function(err) {
+        clearTimeout(timeout);
+        const message = err && err.name !== "AbortError" && err.name !== "TypeError" && err.message
+            ? err.message
+            : "Couldn't reach the shared leaderboard.";
+        showLocalBoard(message);
+    });
 }
 
 
@@ -2520,7 +2658,7 @@ function finishQuiz() {
 function renderPodium() {
 
     // Top 3, shown in podium order: 2nd, 1st, 3rd
-    const top = leaderboard.slice(0, 3);
+    const top = shownBoard.slice(0, 3);
     const layout = [1, 0, 2];
 
     // Blocks rise 3rd -> 2nd -> 1st, then each avatar drops in
@@ -2594,7 +2732,7 @@ function displayLeaderboard() {
     list.innerHTML = "";
 
 
-    leaderboard.forEach(function(player, index) {
+    shownBoard.forEach(function(player, index) {
 
         let medal = index + 1;
 
@@ -2608,7 +2746,7 @@ function displayLeaderboard() {
 
         list.innerHTML += `
 
-            <div class="leaderboard-row">
+            <div class="leaderboard-row ${isMe(player) ? "me" : ""}">
 
                 <div class="position">
                     ${medal}
