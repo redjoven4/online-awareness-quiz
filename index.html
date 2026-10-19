@@ -698,6 +698,76 @@ body {
     font-weight: bold;
 }
 
+/* ---------- LIVE STANDINGS (between questions) ---------- */
+
+.live-standings {
+    margin-top: 18px;
+}
+
+.live-standings:empty {
+    display: none;
+}
+
+.ls-title {
+    font-weight: bold;
+    color: #46178f;
+    margin-bottom: 8px;
+}
+
+.ls-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f4f4f5;
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin: 6px 0;
+}
+
+.ls-row.me {
+    background: #efe7fb;
+    box-shadow: inset 0 0 0 2px #46178f;
+}
+
+.ls-row .lb-avatar svg {
+    width: 30px;
+    height: 30px;
+}
+
+.ls-rank {
+    width: 18px;
+    font-weight: bold;
+    color: #6b21a8;
+}
+
+.ls-name {
+    flex: 1;
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ls-points {
+    font-weight: bold;
+}
+
+.ls-note {
+    color: #666;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.lb-progress {
+    font-size: 12px;
+    font-weight: bold;
+    color: #92400e;
+    background: #fef3c7;
+    border-radius: 20px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
 /* ---------- SOUND TOGGLE ---------- */
 
 .audio-controls {
@@ -982,6 +1052,9 @@ body {
             <p id="weakerText"></p>
 
         </div>
+
+
+        <div id="liveStandings" class="live-standings"></div>
 
 
         <button
@@ -2160,6 +2233,8 @@ function startQuiz() {
 
     SoundFX.unlock();   // browsers only allow audio after a user click
 
+    resetLiveGame();    // new game = new entry on the shared leaderboard
+
     SoundFX.music(1, 0.8);   // background music starts with the quiz
 
     currentQuestion = 0;
@@ -2458,6 +2533,9 @@ function answerQuestion(selected) {
 
     showScreen("explanationScreen");
 
+
+    saveProgressAndShowStandings();   // share this score with other players now
+
 }
 
 
@@ -2594,7 +2672,7 @@ function showLocalBoard(reason) {
 }
 
 function boardKey(list) {
-    return list.map(function(p) { return p.id + ":" + p.points; }).join("|");
+    return list.map(function(p) { return p.id + ":" + p.points + ":" + p.answered; }).join("|");
 }
 
 function mapBoard(top) {
@@ -2604,6 +2682,9 @@ function mapBoard(top) {
             name: String(e.name || "Player"),
             points: Number(e.points) || 0,
             score: Number(e.score) || 0,
+            total: Number(e.total) || questions.length,
+            answered: Number(e.answered) || Number(e.total) || questions.length,
+            finished: e.finished !== false,
             avatar: safeAvatar(e.avatar)
         };
     });
@@ -2641,57 +2722,148 @@ function stopLiveRefresh() {
     liveRefreshTimer = null;
 }
 
-function submitGlobalScore() {
+/* ---------- Saving progress after every question ----------
+   The first save creates this player's entry and returns a secret token;
+   later saves update the same entry, so other players see scores live. */
 
+let liveGame = { gen: 0, id: null, token: null, chain: Promise.resolve() };
+
+function resetLiveGame() {
+    liveGame = { gen: liveGame.gen + 1, id: null, token: null, chain: Promise.resolve() };
     myEntryId = null;
+}
+
+function postProgress(finished) {
+
+    const gen = liveGame.gen;
+
+    // Snapshot the values now, before the next question changes them
+    const snapshot = {
+        name: playerName,
+        avatar: Object.assign({}, avatar),
+        total: questions.length,
+        answered: finished ? questions.length : Math.min(currentQuestion + 1, questions.length),
+        score: score,
+        points: points,
+        finished: finished
+    };
+
+    // Requests are sent one after another so they always arrive in order
+    liveGame.chain = liveGame.chain
+        .catch(function() {})
+        .then(function() {
+
+            if (gen !== liveGame.gen) throw new Error("stale");
+
+            const payload = Object.assign({ id: liveGame.id, token: liveGame.token }, snapshot);
+
+            const controller = window.AbortController ? new AbortController() : null;
+            const timeout = setTimeout(function() {
+                if (controller) controller.abort();
+            }, 8000);
+
+            return fetch("/api/leaderboard", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                signal: controller ? controller.signal : undefined
+            })
+            .then(function(response) {
+                clearTimeout(timeout);
+                return response.json().then(function(data) {
+                    if (!response.ok) {
+                        throw new Error((data.error || "Could not save score.") + (data.detail ? " (" + data.detail + ")" : ""));
+                    }
+                    return data;
+                });
+            }, function(err) {
+                clearTimeout(timeout);
+                throw err;
+            })
+            .then(function(data) {
+                if (gen !== liveGame.gen) throw new Error("stale");
+                liveGame.id = data.id;
+                liveGame.token = data.token;
+                myEntryId = data.id;
+                return data;
+            });
+        });
+
+    return liveGame.chain;
+}
+
+// Called after each answer: save progress and show live standings
+function saveProgressAndShowStandings() {
+
+    const box = document.getElementById("liveStandings");
+    box.innerHTML = '<div class="ls-title">📊 Live standings</div><div class="ls-note">Updating…</div>';
+
+    postProgress(false)
+        .then(function(data) {
+            renderStandings(mapBoard(data.top), data.rank);
+        })
+        .catch(function(err) {
+            if (err && err.message === "stale") return;
+            box.innerHTML = "";
+        });
+}
+
+function renderStandings(list, rank) {
+
+    const box = document.getElementById("liveStandings");
+    const top = list.slice(0, 5);
+
+    let html = '<div class="ls-title">📊 Live standings</div>';
+
+    top.forEach(function(player, index) {
+        html += `
+            <div class="ls-row ${isMe(player) ? "me" : ""}">
+                <span class="ls-rank">${index + 1}</span>
+                <span class="lb-avatar">${avatarSVG(player.avatar, "bust")}</span>
+                <span class="ls-name">${escapeHTML(player.name)}</span>
+                ${progressTag(player)}
+                <span class="ls-points">${player.points}</span>
+            </div>`;
+    });
+
+    if (rank && rank > top.length) {
+        html += `<div class="ls-note">You're currently #${rank}</div>`;
+    }
+
+    box.innerHTML = html;
+}
+
+function progressTag(player) {
+    return player.finished === false
+        ? `<span class="lb-progress">⏳ Q${player.answered}/${player.total}</span>`
+        : "";
+}
+
+function submitGlobalScore() {
 
     document.getElementById("leaderboardStatus").innerText =
         "Saving your score…";
 
-    const controller = window.AbortController ? new AbortController() : null;
-    const timeout = setTimeout(function() {
-        if (controller) controller.abort();
-    }, 8000);
+    postProgress(true)
+        .then(function(data) {
 
-    fetch("/api/leaderboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: playerName,
-            avatar: avatar,
-            score: score,
-            points: points,
-            total: questions.length
-        }),
-        signal: controller ? controller.signal : undefined
-    })
-    .then(function(response) {
-        return response.json().then(function(data) {
-            if (!response.ok) throw new Error((data.error || "Could not save score.") + (data.detail ? " (" + data.detail + ")" : ""));
-            return data;
+            const list = mapBoard(data.top);
+
+            let status = "";
+            if (data.rank && data.rank <= 10) status = "🎉 You placed #" + data.rank + " on the leaderboard!";
+            else if (data.rank) status = "You're #" + data.rank + " overall. Keep playing to reach the top 10!";
+
+            showResultsBoard(list, status);
+
+            startLiveRefresh();
+        })
+        .catch(function(err) {
+            if (err && err.message === "stale") return;
+            const message = err && err.name !== "AbortError" && err.name !== "TypeError" && err.message
+                ? err.message
+                : "Couldn't reach the shared leaderboard.";
+            showLocalBoard(message);
         });
-    })
-    .then(function(data) {
-        clearTimeout(timeout);
-        myEntryId = data.id;
-
-        const list = mapBoard(data.top);
-
-        let status = "";
-        if (data.rank && data.rank <= 10) status = "🎉 You placed #" + data.rank + " on the leaderboard!";
-        else if (data.rank) status = "You're #" + data.rank + " overall. Keep playing to reach the top 10!";
-
-        showResultsBoard(list, status);
-
-        startLiveRefresh();
-    })
-    .catch(function(err) {
-        clearTimeout(timeout);
-        const message = err && err.name !== "AbortError" && err.name !== "TypeError" && err.message
-            ? err.message
-            : "Couldn't reach the shared leaderboard.";
-        showLocalBoard(message);
-    });
 }
 
 
@@ -2724,6 +2896,7 @@ function renderPodium(noConfetti) {
                     ${avatarSVG(player.avatar, "full", "happy")}
                 </div>
                 <div class="podium-name">${escapeHTML(player.name)}</div>
+                ${player.finished === false ? '<div class="podium-points">⏳ still playing</div>' : ""}
                 <div class="podium-points">${player.points} pts</div>
                 <div class="podium-block" style="animation-delay:${delay}s">${place}</div>
             </div>`;
@@ -2799,6 +2972,7 @@ function displayLeaderboard() {
                 <div class="leader-name">
                     <span class="lb-avatar">${avatarSVG(player.avatar, "bust")}</span>
                     <span>${escapeHTML(player.name)}</span>
+                    ${progressTag(player)}
                 </div>
 
                 <div class="leader-score">
@@ -2827,6 +3001,8 @@ function resetQuiz() {
     SoundFX.musicStop();
 
     stopLiveRefresh();
+
+    resetLiveGame();
 
     const confetti = document.querySelector(".confetti-layer");
     if (confetti) confetti.remove();
